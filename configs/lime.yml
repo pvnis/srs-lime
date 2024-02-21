@@ -1,6 +1,14 @@
+gnb_id: 531
+
+slicing:
+  - sst: 1
+    sd: 0
+  - sst: 1
+    sd: 1
+
 amf:
-  addr: 172.22.0.10
-  bind_addr: 142.168.1.144
+  addr: 10.43.81.162
+  bind_addr: 192.168.0.123
 
 ru_sdr:
   device_driver: lime
@@ -23,13 +31,13 @@ ru_sdr:
                                           # to the RF reception, while negative values increase it
 
 cell_cfg:
-  dl_arfcn: 518670                                                # ARFCN of the downlink carrier (center frequency).
-  band: 41                                                        # The NR band.
+  dl_arfcn: 634000                                                # ARFCN of the downlink carrier (center frequency).
+  band: 78                                                        # The NR band.
   channel_bandwidth_MHz: 20                                       # Bandwith in MHz. Number of PRBs will be automatically derived.
   # channel_bandwidth_MHz: 40
   common_scs: 30                                                  # Subcarrier spacing in kHz used for data.
   plmn: "00101"                                                   # PLMN broadcasted by the gNB.
-  tac: 7                                                          # Tracking area code (needs to match the core configuration).
+  tac: 1                                                          # Tracking area code (needs to match the core configuration).
   pci: 1                                                          # Physical cell ID.
   # pcg_p_nr_fr1: -20
 
