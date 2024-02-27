@@ -103,6 +103,7 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
 {
   srsran_assert(std::isnormal(srate_hz) && (srate_hz > 0.0), "Invalid sampling rate {}.", srate_hz);
 
+  logger.debug("Creating tx stream.");
   // int availableTxChannels = LMS_GetNumChannels(stream, lime::Dir::Tx);
   // if (availableTxChannels < nof_channels)
   // {
@@ -128,14 +129,13 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
 
   device->GetStreamConfig().linkFormat    = wire_format;
   device->GetStreamConfig().format        = lime::SDRDevice::StreamConfig::DataFormat::F32;
-  device->GetStreamConfig().txCount       = nof_channels;
+  // device->GetStreamConfig().txCount       = nof_channels;
   device->GetStreamConfig().alignPhase    = (nof_channels>1) ? true : false;
   device->GetStreamConfig().hintSampleRate = srate_hz;
    // NOT USING THIS FOR NOW
   // device->GetStreamConfig().userData = malloc(sizeof(lime::callback_info_t));
   for (unsigned int i=0; i<nof_channels; i++)
   {
-    device->GetStreamConfig().txChannels[i] = i;
     device->GetDeviceConfig().channel[i].tx.enabled = true;
     device->GetDeviceConfig().channel[i].tx.sampleRate = srate_hz;
     device->GetDeviceConfig().channel[i].tx.oversample = 2;
@@ -200,7 +200,7 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
       else if (arg.first == "txpath")
       {
         bool match = false;
-        auto paths = device->dev()->GetDescriptor().rfSOC[0].txPathNames;
+        auto paths = device->dev()->GetDescriptor().rfSOC[0].pathNames.at(lime::TRXDir::Tx);
         for(uint j=0; j<paths.size(); ++j)
         {
           if (strcasecmp(paths[j].c_str(), arg.second.c_str()) == 0)
@@ -218,19 +218,13 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
       }
       else if (arg.first == "txMaxPacketsInBatch")
       {
-        if (!device->GetStreamConfig().extraConfig)
-          device->GetStreamConfig().extraConfig = new lime::SDRDevice::StreamConfig::Extras();
-        
         unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig->txMaxPacketsInBatch = number;
+        device->GetStreamConfig().extraConfig.txMaxPacketsInBatch = number;
       }
       else if (arg.first == "txSamplesInPacket")
       {
-        if (!device->GetStreamConfig().extraConfig)
-          device->GetStreamConfig().extraConfig = new lime::SDRDevice::StreamConfig::Extras();
-        
         unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig->txSamplesInPacket = number;
+        device->GetStreamConfig().extraConfig.txSamplesInPacket = number;
       }
       else if (arg.first == "lmsconfig")
       {

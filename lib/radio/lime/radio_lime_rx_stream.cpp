@@ -71,33 +71,44 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
 {
   srsran_assert(std::isnormal(srate_Hz) && (srate_Hz > 0.0), "Invalid sampling rate {}.", srate_Hz);
 
-  // int availableRxChannels = LMS_GetNumChannels(stream, lime::Dir::Rx);
-  // if (availableRxChannels < nof_channels)
+  logger.debug("Creating receive stream {}.", id);
+
+  // Get the number of channels and check if valid
+  // unsigned int availablePortsRX = device->GetStreamConfig().channels.at(lime::TRXDir::Rx).size();
+  // unsigned int availablePortsTX = device->GetStreamConfig().channels.at(lime::TRXDir::Tx).size();
+  
+
+  // if(availablePortsRX < nof_channels || availablePortsTX < nof_channels)
   // {
-  //   logger.error("Device supports only {} Rx channels, required {}", availableRxChannels, nof_channels);
+  //   logger.error("Device supports only {} ports, required {}", availablePortsRX, nof_channels);
   //   return;
   // }
 
   // Build stream arguments.
   lime::SDRDevice::StreamConfig::DataFormat wire_format;
+
   switch (description.otw_format) {
     case radio_configuration::over_the_wire_format::DEFAULT:
     case radio_configuration::over_the_wire_format::SC16:
       wire_format = lime::SDRDevice::StreamConfig::DataFormat::I16;
       break;
+  
     case radio_configuration::over_the_wire_format::SC12:
       wire_format = lime::SDRDevice::StreamConfig::DataFormat::I12;
       break;
+  
     case radio_configuration::over_the_wire_format::SC8:
     default:
       logger.error("Failed to create receive stream {}. invalid OTW format!", id);
       return;
   }
 
-  device->GetStreamConfig().rxCount = nof_channels;
+  // Build extra configuration (needed for additional parameters).
+  device->GetStreamConfig().extraConfig = lime::SDRDevice::StreamConfig::Extras();
+
+  // Configure the requested amount of channels
   for (unsigned int i=0; i<nof_channels; i++)
   {
-    device->GetStreamConfig().rxChannels[i] = i;
     device->GetDeviceConfig().channel[i].rx.enabled = true;
     device->GetDeviceConfig().channel[i].rx.sampleRate = srate_Hz;
     device->GetDeviceConfig().channel[i].rx.oversample = 2;
@@ -162,7 +173,7 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
       else if (arg.first == "rxpath")
       {
         bool match = false;
-        auto paths = device->dev()->GetDescriptor().rfSOC[0].rxPathNames;
+        auto paths = device->dev()->GetDescriptor().rfSOC[0].pathNames.at(lime::TRXDir::Rx);
         for(uint j=0; j<paths.size(); ++j)
         {
           if (strcasecmp(paths[j].c_str(), arg.second.c_str()) == 0)
@@ -180,27 +191,18 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
       }
       else if (arg.first == "usepoll")
       {
-        if (!device->GetStreamConfig().extraConfig)
-          device->GetStreamConfig().extraConfig = new lime::SDRDevice::StreamConfig::Extras();
-        
         unsigned long mode = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig->usePoll = (bool)mode;
+        device->GetStreamConfig().extraConfig.usePoll = (bool)mode;        
       }
       else if (arg.first == "rxPacketsInBatch")
       {
-        if (!device->GetStreamConfig().extraConfig)
-          device->GetStreamConfig().extraConfig = new lime::SDRDevice::StreamConfig::Extras();
-        
         unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig->rxPacketsInBatch = number;
+        device->GetStreamConfig().extraConfig.rxPacketsInBatch = number;        
       }
       else if (arg.first == "rxSamplesInPacket")
       {
-        if (!device->GetStreamConfig().extraConfig)
-          device->GetStreamConfig().extraConfig = new lime::SDRDevice::StreamConfig::Extras();
-        
         unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig->rxSamplesInPacket = number;
+        device->GetStreamConfig().extraConfig.rxSamplesInPacket = number;
       }
       else
         continue;
