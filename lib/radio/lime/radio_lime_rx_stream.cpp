@@ -109,6 +109,9 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
   // Configure the requested amount of channels
   for (unsigned int i=0; i<nof_channels; i++)
   {
+
+    device->GetStreamConfig().channels.at(lime::TRXDir::Rx).push_back(i);
+
     device->GetDeviceConfig().channel[i].rx.enabled = true;
     device->GetDeviceConfig().channel[i].rx.sampleRate = srate_Hz;
     device->GetDeviceConfig().channel[i].rx.oversample = 2;

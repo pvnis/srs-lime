@@ -21,6 +21,8 @@
  */
 
 #include "radio_lime_tx_stream.h"
+#include <limesuite/OpStatus.h>
+#include <limesuite/commonTypes.h>
 
 using namespace srsran;
 
@@ -136,6 +138,8 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
   // device->GetStreamConfig().userData = malloc(sizeof(lime::callback_info_t));
   for (unsigned int i=0; i<nof_channels; i++)
   {
+    device->GetStreamConfig().channels.at(lime::TRXDir::Tx).push_back(i);
+
     device->GetDeviceConfig().channel[i].tx.enabled = true;
     device->GetDeviceConfig().channel[i].tx.sampleRate = srate_hz;
     device->GetDeviceConfig().channel[i].tx.oversample = 2;
@@ -241,6 +245,16 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
   // TODO: This might need to be 256?
   max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
   // max_packet_size = 256;
+
+
+  // // CREATE THE STREAMS
+
+  // // Create tx stream.
+  // if (device->dev()->StreamSetup(device->GetStreamConfig(), chipIndex) != lime::OpStatus::SUCCESS)
+  // {
+  //   logger.error("Failed to create transmit stream {}.", stream_id);
+  //   return;
+  // }
 
   // Notify FSM that it was successfully initialized.
   state_fsm.init_successful();
