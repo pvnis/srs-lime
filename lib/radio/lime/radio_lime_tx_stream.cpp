@@ -243,9 +243,8 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
 
   // Set max packet size.
   // TODO: This might need to be 256?
-  max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
-  // max_packet_size = 256;
-
+  //max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
+  max_packet_size = 256;
 
   // // CREATE THE STREAMS
 

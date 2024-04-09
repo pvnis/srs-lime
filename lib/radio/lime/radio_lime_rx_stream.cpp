@@ -41,6 +41,10 @@ bool radio_lime_rx_stream::receive_block(unsigned&                       nof_rxd
   // Make sure the number of channels is equal.
   srsran_assert(data.get_nof_channels() == nof_channels, "Number of channels does not match.");
 
+  srslog::fetch_basic_logger("LOWER PHY").debug(
+    "eduard | radio_lime_rx_stream.cpp | receive_block: data.get_nof_samples={}, offset={}, num_samples={}", data.get_nof_samples(), offset, num_samples);
+  
+
   // Flatten buffers.
   static_vector<void*, RADIO_MAX_NOF_CHANNELS> buffs_flat_ptr(nof_channels);
   for (unsigned channel = 0; channel != nof_channels; ++channel) {
@@ -73,6 +77,10 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
 
   logger.debug("Creating receive stream {}.", id);
 
+  srslog::fetch_basic_logger("LOWER PHY").debug(
+    "eduard | radio_lime_rx_stream.cpp | radio_lime_rx_stream (constructor): srate_Hz={}", srate_Hz);
+  
+
   // Get the number of channels and check if valid
   // unsigned int availablePortsRX = device->GetStreamConfig().channels.at(lime::TRXDir::Rx).size();
   // unsigned int availablePortsTX = device->GetStreamConfig().channels.at(lime::TRXDir::Tx).size();
@@ -85,23 +93,26 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
   // }
 
   // Build stream arguments.
-  lime::SDRDevice::StreamConfig::DataFormat wire_format;
+  // lime::SDRDevice::StreamConfig::DataFormat wire_format;
 
-  switch (description.otw_format) {
-    case radio_configuration::over_the_wire_format::DEFAULT:
-    case radio_configuration::over_the_wire_format::SC16:
-      wire_format = lime::SDRDevice::StreamConfig::DataFormat::I16;
-      break;
+  // switch (description.otw_format) {
+  //   case radio_configuration::over_the_wire_format::DEFAULT:
+  //   case radio_configuration::over_the_wire_format::SC16:
+  //     wire_format = lime::SDRDevice::StreamConfig::DataFormat::I16;
+  //     break;
   
-    case radio_configuration::over_the_wire_format::SC12:
-      wire_format = lime::SDRDevice::StreamConfig::DataFormat::I12;
-      break;
+  //   case radio_configuration::over_the_wire_format::SC12:
+  //     wire_format = lime::SDRDevice::StreamConfig::DataFormat::I12;
+  //     break;
   
-    case radio_configuration::over_the_wire_format::SC8:
-    default:
-      logger.error("Failed to create receive stream {}. invalid OTW format!", id);
-      return;
-  }
+  //   case radio_configuration::over_the_wire_format::SC8:
+  //   default:
+  //     logger.error("Failed to create receive stream {}. invalid OTW format!", id);
+  //     return;
+  // }
+
+  // TODO: Write WIRE FORMAT
+
 
   // Build extra configuration (needed for additional parameters).
   device->GetStreamConfig().extraConfig = lime::SDRDevice::StreamConfig::Extras();
@@ -216,8 +227,8 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
 
   // Set max packet size.
   // TODO: This might need to be 256?
-  max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
-  // max_packet_size = 256;
+  // max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
+  max_packet_size = 2048;
 
   state = states::SUCCESSFUL_INIT;
 }
@@ -261,6 +272,11 @@ baseband_gateway_receiver::metadata radio_lime_rx_stream::receive(baseband_gatew
       ret.ts = md.timestamp;
     }
 
+  srslog::fetch_basic_logger("LOWER PHY").debug(
+      "eduard | radio_lime_rx_stream.cpp (receive) | rxd_samples={} nsamples={}, rxd_samples_total={}, ret.ts={}", 
+      rxd_samples, nsamples, rxd_samples_total, ret.ts
+    );
+
     // Increase the total amount of received samples.
     rxd_samples_total += rxd_samples;
 
@@ -298,5 +314,7 @@ void radio_lime_rx_stream::wait_stop()
 
 unsigned radio_lime_rx_stream::get_buffer_size() const
 {
+    srslog::fetch_basic_logger("LOWER PHY").debug(
+    "eduard | radio_lime_rx_stream.cpp | get_buffer_size: max_packet_size={} (optimal packet size)", max_packet_size);
   return max_packet_size;
 }

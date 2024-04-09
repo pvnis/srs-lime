@@ -182,6 +182,11 @@ void lower_phy_baseband_processor::ul_process()
   // Update last timestamp.
   last_rx_timestamp.store(rx_metadata.ts + rx_buffer->get_nof_samples(), std::memory_order_release);
 
+  srslog::fetch_basic_logger("LOWER PHY").debug(
+    "eduard | lower_phy_baseband_processor.cpp | downlink_process: rx_buffers.size={}, rx_buffer.size={}, last_rx_timestamp={}", 
+    rx_buffers.size(), rx_buffer->get_nof_samples(), last_rx_timestamp.load(std::memory_order_acquire)
+  );
+  
   // Queue uplink buffer processing.
   report_fatal_error_if_not(uplink_executor.execute([this, ul_buffer = std::move(rx_buffer), rx_metadata]() mutable {
     trace_point ul_tp = ru_tracer.now();

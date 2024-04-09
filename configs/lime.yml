@@ -34,7 +34,7 @@ amf:
 ru_sdr:
   device_driver: lime
   # LNAH, LNAL, LNAW
-  device_args: rxcalibrate=1,txcalibrate=1,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=1,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2
+  device_args: rxcalibrate=1,txcalibrate=1,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=256,txSamplesInPacket=1024,rxoversample=2,txoversample=2
   # clock:
   # sync:
   # srate: 92.16
@@ -93,8 +93,8 @@ cell_cfg:
 
 log:
   # filename: gnb_xtrx2.log
-  #filename: gnb.log
-  filename: stdout
+  filename: ./gnb.log
+  # filename: stdout
   all_level: warning
   #radio_level: debug
   # phy_level: debug

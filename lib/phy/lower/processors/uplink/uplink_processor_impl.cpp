@@ -94,6 +94,12 @@ uplink_processor_baseband& lower_phy_uplink_processor_impl::get_baseband()
 void lower_phy_uplink_processor_impl::process(const baseband_gateway_buffer_reader& samples,
                                               baseband_gateway_timestamp            timestamp)
 {
+  
+    srslog::fetch_basic_logger("LOWER PHY").debug(
+      "eduard | uplink_processor_impl (process) | state={} ",
+      state
+    );
+
   switch (state) {
     case fsm_states::alignment:
       process_alignment(samples, timestamp);
@@ -144,6 +150,11 @@ void lower_phy_uplink_processor_impl::process_symbol_boundary(const baseband_gat
     i_sample_symbol -= symbol_sizes[i_symbol_sf];
     ++i_symbol_sf;
   }
+
+  srslog::fetch_basic_logger("LOWER PHY").debug(
+      "eduard | uplink_processor_impl.cpp (process_symbol_boundary) | i_sf={} i_sample_sf={}, i_symbol_sf={}, i_sample_symbol={}, symbol_sizes", 
+      i_sf, i_sample_sf, i_sample_symbol, i_symbol_sf, i_sample_symbol, symbol_sizes 
+    );
 
   // If the sample is not aligned with the beginning of the OFDM symbol, align to next subframe.
   if (i_sample_symbol != 0) {
