@@ -26,37 +26,45 @@
 #include <set>
 #include <memory>
 
-#include <limesuite/SDRDevice.h>
-#include <limesuite/DeviceRegistry.h>
-#include <limesuite/LMS7002M.h>
-#include <limesuite/commonTypes.h>
+#include <limesuiteng/limesuiteng.hpp>
+// #include <limesuite/SDRDevice.h>
+// #include <limesuite/DeviceRegistry.h>
+// #include <limesuite/LMS7002M.h>
+// #include <limesuite/commonTypes.h>
 
 class LimeHandle
 {
 public:
 	mutable std::recursive_mutex accessMutex;
 
+	// Getter for the device and Pointer Deref Op.
 	lime::SDRDevice* dev() { return _dev; }
 	operator lime::SDRDevice* () { return _dev; }
 
+	// Number of devices, that are found
 	unsigned count() { return devcnt; }
 
+	// Destructors and constructors
 	LimeHandle() = delete;
 	LimeHandle(lime::DeviceHandle& devHandle);
 	~LimeHandle();
 
-	lime::SDRDevice::SDRConfig& GetDeviceConfig() { return _dev_config; }
-	lime::SDRDevice::StreamConfig& GetStreamConfig() { return _stream_config; }
+	lime::SDRConfig& GetDeviceConfig() { return _dev_config; }
+	lime::StreamConfig& GetStreamConfig() { return _stream_config; }	
+
+	// Configuration Path (TODO: Take the configs from OAI and others as reference!)
 	std::string& GetLMSConfPath() { return config_path; }
 
+	// Get the device handle in srs from a limeDevice Handle
 	static std::shared_ptr<LimeHandle> get(lime::DeviceHandle& devHandle);
 
+	// Argument parsing for config.yaml arguments
 	static bool split_args(std::string args, std::vector<std::pair<std::string, std::string>>& arg_list);
 
 protected:
 	lime::SDRDevice* _dev = NULL;
-	lime::SDRDevice::SDRConfig _dev_config;
-	lime::SDRDevice::StreamConfig _stream_config;
+	lime::SDRConfig _dev_config;
+	lime::StreamConfig _stream_config;
 	std::string config_path = "";
 
 	unsigned devcnt;

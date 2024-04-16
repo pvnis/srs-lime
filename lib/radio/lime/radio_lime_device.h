@@ -90,28 +90,30 @@ public:
 
   bool lime_make(const std::string& device_args)
   {
-    // Destroy any previous USRP instance
+    // Destroy any previous LIME instance
     device = nullptr;
 
     // Enumerate devices
     std::vector<lime::DeviceHandle> devHandles = lime::DeviceRegistry::enumerate();
     if (devHandles.size() == 0)
     {
-      logger.error("No LMS7002M boards found!\n");
-      fprintf(stderr, "No LMS7002M boards found!\n");
+      logger.error("No Lime boards found!\n");
+      fprintf(stderr, "No Lime boards found!\n");
       return false;
     }
     else
     {
-      logger.debug("Available LMS7002M devices:");
+      logger.debug("Available Lime devices:");
       for (const auto &dev : devHandles) {
         logger.debug("\t\"{}\"", dev.Serialize().c_str());
       }
     }
 
-    // Connect and initialize
-    lime::DeviceHandle first_device_ = devHandles.front();
+    // Connect and initialize, using FIRST available device
+    lime::DeviceHandle first_device_ = devHandles[0];
     logger.debug("Selected: {}", first_device_.Serialize().c_str());
+    
+    // Get the protected device Handle via LimeHandler (LOCKING IT FOR ANYONE ELSE)
     device = LimeHandle::get(first_device_);
     if (device == nullptr)
     {

@@ -32,8 +32,13 @@
 
 std::map<std::string, std::weak_ptr<LimeHandle>> LimeHandle::s_created;
 
+/// @brief Get a device by its `lime::DeviceHandle`, lime's internal representation
+///		   For device handles.
+/// @param devHandle specified device
+/// @return srsRAN handle wrapper
 std::shared_ptr<LimeHandle> LimeHandle::get(lime::DeviceHandle& devHandle)
 {
+	// Try to find the handle in the map of all devices
 	auto idx = s_created.find(devHandle.ToString());
 	if (idx != s_created.end()) {
 		 if (std::shared_ptr<LimeHandle> obj = idx->second.lock())
@@ -45,13 +50,17 @@ std::shared_ptr<LimeHandle> LimeHandle::get(lime::DeviceHandle& devHandle)
 	return obj;
 }
 
+/// @brief Open Lime Device from handle
+/// @param devHandle lime Device handle
 LimeHandle::LimeHandle(lime::DeviceHandle& devHandle)
 {
 	_dev = lime::DeviceRegistry::makeDevice(devHandle);
 
 	if (_dev == nullptr)
 		throw std::runtime_error(std::string("LimeHandle::LimeHandle() - unable to open the device"));
-	devcnt = 1;
+	
+	// Increase the number of devices by 1
+	devcnt += 1;
 }
 
 LimeHandle::~LimeHandle()
