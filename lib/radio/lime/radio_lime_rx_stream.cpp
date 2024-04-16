@@ -27,7 +27,7 @@ using namespace srsran;
 bool radio_lime_rx_stream::receive_block(unsigned&                       nof_rxd_samples,
                                          baseband_gateway_buffer_writer& data,
                                          unsigned                        offset,
-                                         lime::SDRDevice::StreamMeta&    md)
+                                         lime::StreamMeta&    md)
 {
   // Extract number of samples.
   unsigned num_samples = data.get_nof_samples() - offset;
@@ -82,40 +82,45 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
   
 
   // Get the number of channels and check if valid
-  // unsigned int availablePortsRX = device->GetStreamConfig().channels.at(lime::TRXDir::Rx).size();
-  // unsigned int availablePortsTX = device->GetStreamConfig().channels.at(lime::TRXDir::Tx).size();
+  // unsigned int availablePortsRX = device->GetStreamConfig().channels[lime::TRXDir::Rx].size();
+  // unsigned int availablePortsTX = device->GetStreamConfig().channels[lime::TRXDir::Tx].size();
   
+  unsigned int availablePortsRX = device->GetChannelCount();
+  unsigned int availablePortsTX = device->GetChannelCount();
 
-  // if(availablePortsRX < nof_channels || availablePortsTX < nof_channels)
-  // {
-  //   logger.error("Device supports only {} ports, required {}", availablePortsRX, nof_channels);
-  //   return;
-  // }
+
+  if(availablePortsRX < nof_channels || availablePortsTX < nof_channels)
+  {
+    logger.error("Device supports only {} ports, required {}", availablePortsRX, nof_channels);
+    return;
+  }
 
   // Build stream arguments.
-  // lime::SDRDevice::StreamConfig::DataFormat wire_format;
+  lime::DataFormat wire_format;
 
-  // switch (description.otw_format) {
-  //   case radio_configuration::over_the_wire_format::DEFAULT:
-  //   case radio_configuration::over_the_wire_format::SC16:
-  //     wire_format = lime::SDRDevice::StreamConfig::DataFormat::I16;
-  //     break;
+  switch (description.otw_format) {
+    case radio_configuration::over_the_wire_format::DEFAULT:
+    case radio_configuration::over_the_wire_format::SC16:
+      wire_format = lime::DataFormat::I16;
+      break;
   
-  //   case radio_configuration::over_the_wire_format::SC12:
-  //     wire_format = lime::SDRDevice::StreamConfig::DataFormat::I12;
-  //     break;
+    case radio_configuration::over_the_wire_format::SC12:
+      // This is 12 bit in a 16 bit integer [-2048; 2047]
+      wire_format = lime::DataFormat::I12;
+      break;
   
-  //   case radio_configuration::over_the_wire_format::SC8:
-  //   default:
-  //     logger.error("Failed to create receive stream {}. invalid OTW format!", id);
-  //     return;
-  // }
+    case radio_configuration::over_the_wire_format::SC8:
+    default:
+      logger.error("Failed to create receive stream {}. invalid OTW format!", id);
+      return;
+  }
 
-  // TODO: Write WIRE FORMAT
-
+  // Write the wire format
+  device->GetStreamConfig().linkFormat = wire_format;
 
   // Build extra configuration (needed for additional parameters).
-  device->GetStreamConfig().extraConfig = lime::SDRDevice::StreamConfig::Extras();
+  device->GetStreamConfig().extraConfig = lime::StreamConfig::Extras();
+
 
   // Configure the requested amount of channels
   for (unsigned int i=0; i<nof_channels; i++)
@@ -211,12 +216,12 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
       else if (arg.first == "rxPacketsInBatch")
       {
         unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig.rxPacketsInBatch = number;        
+        device->GetStreamConfig().extraConfig.rx.packetsInBatch = number;        
       }
       else if (arg.first == "rxSamplesInPacket")
       {
         unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig.rxSamplesInPacket = number;
+        device->GetStreamConfig().extraConfig.rx.samplesInPacket = number;
       }
       else
         continue;
@@ -255,7 +260,7 @@ bool radio_lime_rx_stream::start(const uint64_t time_spec)
 baseband_gateway_receiver::metadata radio_lime_rx_stream::receive(baseband_gateway_buffer_writer& data)
 {
   baseband_gateway_receiver::metadata ret = {};
-  lime::SDRDevice::StreamMeta         md;
+  lime::StreamMeta         md;
   unsigned                            nsamples            = data[0].size();
   unsigned                            rxd_samples_total   = 0;
 

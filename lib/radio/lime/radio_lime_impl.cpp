@@ -236,11 +236,11 @@ radio_session_lime_impl::radio_session_lime_impl(const radio_configuration::radi
     } else {
       severity_level = lime::LogLevel::Verbose;
     }
+  
+    lime::registerLogHandler(LogCallback);
+    lime::log(severity_level, "Configured Logging for Lime!");
   }
   
-  // TODO: Set radio callback with log level! 
-  // lime::log::set_console_level(severity_level);
-
   unsigned total_rx_channel_count = 0;
   for (const radio_configuration::stream& stream_config : radio_config.rx_streams) {
     total_rx_channel_count += stream_config.channels.size();

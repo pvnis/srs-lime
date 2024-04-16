@@ -28,10 +28,11 @@
 #else // __clang__
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif // __clang__
-#include <limesuite/SDRDevice.h>
-#include <limesuite/DeviceRegistry.h>
-#include <limesuite/LMS7002M.h>
-#include <limesuite/commonTypes.h>
+#include <limesuiteng/limesuiteng.hpp>
+// #include <limesuite/SDRDevice.h>
+// #include <limesuite/DeviceRegistry.h>
+// #include <limesuite/LMS7002M.h>
+// #include <limesuite/commonTypes.h>
 #include "radio_lime_handle.h"
 #pragma GCC diagnostic pop
 

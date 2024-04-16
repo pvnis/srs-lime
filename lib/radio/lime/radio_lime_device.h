@@ -27,6 +27,9 @@
 #include "radio_lime_tx_stream.h"
 #include "srsran/radio/radio_session.h"
 
+#include <limesuiteng/LMS7002M.h>
+#include <limesuiteng/limesuiteng.hpp>
+
 #define clip(val,range) std::max(range.min, std::min(range.max, val))
 
 /// \brief Determines whether a frequency is valid within a range.
@@ -56,25 +59,27 @@ static double toMHz(double value_Hz)
 
 namespace srsran {
 
-// TODO
-static void LogCallback(lime::SDRDevice::LogLevel lvl, const char* msg)
+/// @brief Calback for logging in lime
+/// @param lvl selected log level
+/// @param msg the message buffer (ptr to it)
+static void LogCallback(lime::LogLevel lvl, const char* msg)
 {
   static srslog::basic_logger& logger = srslog::fetch_basic_logger("RF");
 
   switch (lvl)
   {
-    case lime::SDRDevice::LogLevel::CRITICAL:
-    case lime::SDRDevice::LogLevel::ERROR:
+    case lime::LogLevel::Critical:
+    case lime::LogLevel::Error:
       logger.error(msg);
       break;
-    case lime::SDRDevice::LogLevel::WARNING:
+    case lime::LogLevel::Warning:
       logger.warning(msg);
       break;
-    case lime::SDRDevice::LogLevel::INFO:
+    case lime::LogLevel::Info:
       logger.info(msg);
       break;
-    case lime::SDRDevice::LogLevel::VERBOSE:
-    case lime::SDRDevice::LogLevel::DEBUG:
+    case lime::LogLevel::Verbose:
+    case lime::LogLevel::Debug:
     default:
       logger.debug(msg);
       break;
@@ -113,7 +118,7 @@ public:
     lime::DeviceHandle first_device_ = devHandles[0];
     logger.debug("Selected: {}", first_device_.Serialize().c_str());
     
-    // Get the protected device Handle via LimeHandler (LOCKING IT FOR ANYONE ELSE)
+    // Get the protected device Handle via LimeHandler (LOCKING IT FOR ANY other application that accesses it)
     device = LimeHandle::get(first_device_);
     if (device == nullptr)
     {
@@ -121,7 +126,7 @@ public:
       return false;
     }
 
-    // Initialize devices to default settings
+    // Initialize devices to *INITIAL* settings
     device->dev()->SetMessageLogCallback(LogCallback);
     device->dev()->Init();
 
@@ -145,8 +150,7 @@ public:
   {
     if (sensor_name == "temp")
     {
-      // TODO replace 0 with chipIndex
-      lime::LMS7002M* chip = static_cast<lime::LMS7002M*>(device->dev()->GetInternalChip(0));
+      lime::LMS7002M *chip = static_cast<lime::LMS7002M*>(device->dev()->GetInternalChip(0));
       sensor_value = chip->GetTemperature();
       return true;
     }
@@ -231,10 +235,10 @@ public:
     logger.debug("Setting Rx Rate to {} MSPS.", toMHz(rate));
 
     return safe_execution([this, rate]() {
-      lime::Range range(0, 120e6, 1);
 
-      // TODO: not implemented in limesuite yet
-      // LMS_GetSampleRateRange(device->dev(), false, &range);
+      // Get Range for sampling rate
+      logger.debug("[RX] Device rfSOC of LIME is {}", device->dev()->GetDescriptor().rfSOC.size());
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].samplingRateRange;
 
       if (!radio_lime_device_validate_freq_range(range, rate)) {
         on_error("Rx Rate {} MHz is invalid. The nearest valid value is {}.", toMHz(rate), toMHz(clip(rate, range)));
@@ -242,8 +246,10 @@ public:
       }
 
       // device->GetDeviceConfig().referenceClockFreq = 0;
-      device->GetDeviceConfig().channel[0].rx.sampleRate = rate;
-      device->GetDeviceConfig().channel[1].rx.sampleRate = rate;
+      for(int i = 0; i < device->GetChannelCount(); i++){
+        device->GetDeviceConfig().channel[i].rx.sampleRate = rate;
+      }
+      
     });
   }
 
@@ -252,18 +258,19 @@ public:
     logger.debug("Setting Tx Rate to {} MSPS.", toMHz(rate));
 
     return safe_execution([this, rate]() {
-      lime::Range range(0, 120e6, 1);
 
-      // TODO: not implemented in limesuite yet
-      // LMS_GetSampleRateRange(device->dev(), true, &range);
+      // Get Range for sampling rate
+      logger.debug("[TX] Device rfSOC of LIME is {}", device->dev()->GetDescriptor().rfSOC.size());
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].samplingRateRange;
 
       if (!radio_lime_device_validate_freq_range(range, rate)) {
         on_error("Tx Rate {} MHz is invalid. The nearest valid value is {}.", toMHz(rate), toMHz(clip(rate, range)));
         return;
       }
 
-      device->GetDeviceConfig().channel[0].tx.sampleRate = rate;
-      device->GetDeviceConfig().channel[1].tx.sampleRate = rate;
+      for(int i = 0; i < device->GetChannelCount(); i++){
+        device->GetDeviceConfig().channel[i].tx.sampleRate = rate;
+      }
     });
   }
 
@@ -330,8 +337,9 @@ public:
     logger.debug("Setting channel {} Tx gain to {:.2f} dB.", ch, gain);
 
     return safe_execution([this, ch, gain]() {
-      // WITH NEW_GAIN_BEHAVIOUR MAX GAIN VALUE IS 62
-      lime::Range range(0, 74, 0.1);
+    
+      // Use the internal PA (currently no external amplifier is used!)
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Tx).at(lime::eGainTypes::PA);
 
       if (!radio_lime_device_validate_gain_range(range, gain)) {
         on_error("Tx gain (i.e., {} dB) is out-of-range. Range is [{}, {}] dB in steps of {} dB.",
@@ -347,8 +355,17 @@ public:
       //   return;
       // }
 
-      lime::SDRDevice::SDRConfig& conf = device->GetDeviceConfig();
-      conf.channel[ch].tx.gain.emplace(std::pair<lime::eGainTypes, double>(lime::eGainTypes::UNKNOWN, gain));
+      // lime::SDRConfig& conf = device->GetDeviceConfig();
+      // conf.channel[ch].tx.gain.emplace(std::pair<lime::eGainTypes, double>(lime::eGainTypes::UNKNOWN, gain));
+
+      // Set all channels at once
+      for(int i = 0; i < device->GetChannelCount(); i++){
+        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::PA, gain);
+        if(stat != lime::OpStatus::Success){
+          on_error("Could not configure channel {} to frequency {}", i, gain);
+        }
+      }
+
     });
   }
 
@@ -357,7 +374,8 @@ public:
     logger.debug("Setting channel {} Rx gain to {:.2f} dB.", ch, gain);
 
     return safe_execution([this, ch, gain]() {
-      lime::Range range(0, 74, 0.1);
+      // Use the internal PA (currently no external amplifier is used!)
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Rx).at(lime::eGainTypes::PA);
 
       if (!radio_lime_device_validate_gain_range(range, gain)) {
         on_error("Rx gain (i.e., {} dB) is out-of-range. Range is [{}, {}] dB in steps of {} dB.",
@@ -373,8 +391,12 @@ public:
       //   return;
       // }
 
-      lime::SDRDevice::SDRConfig& conf = device->GetDeviceConfig();
-      conf.channel[ch].rx.gain.emplace(std::pair<lime::eGainTypes, double>(lime::eGainTypes::UNKNOWN, gain));
+      for(int i = 0; i < device->GetChannelCount(); i++){
+        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::PA, gain);
+        if(stat != lime::OpStatus::Success){
+          on_error("Could not configure channel {} to gain {}", i, gain);
+        }
+      }
     });
   }
 

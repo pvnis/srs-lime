@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <cstdlib>
 #include <algorithm>
 #include <cmath>

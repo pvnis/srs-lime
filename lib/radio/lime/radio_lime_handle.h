@@ -55,6 +55,8 @@ public:
 	// Configuration Path (TODO: Take the configs from OAI and others as reference!)
 	std::string& GetLMSConfPath() { return config_path; }
 
+	int GetChannelCount(){ return _dev->GetDescriptor().rfSOC[0].channelCount; }
+
 	// Get the device handle in srs from a limeDevice Handle
 	static std::shared_ptr<LimeHandle> get(lime::DeviceHandle& devHandle);
 

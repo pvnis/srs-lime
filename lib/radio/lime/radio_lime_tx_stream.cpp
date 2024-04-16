@@ -21,39 +21,35 @@
  */
 
 #include "radio_lime_tx_stream.h"
-#include <limesuite/OpStatus.h>
-#include <limesuite/commonTypes.h>
+#include <limesuiteng/limesuiteng.hpp>
 
 using namespace srsran;
 
-bool recv_async_msg(bool is_tx, const lime::SDRDevice::StreamStats *stream_stats, void* user_data)
+bool recv_async_msg(bool is_tx, const lime::StreamStats* stream_stats, void* user_data)
 {
-  lime::callback_info_t* cbinf = (lime::callback_info_t*)user_data;
-  radio_notification_handler* notifier = (radio_notification_handler*)cbinf->notifier;
-  radio_lime_tx_stream_fsm* state_fsm = (radio_lime_tx_stream_fsm*)cbinf->state_fsm;
-  unsigned stream_id = cbinf->stream_id;
+  lime::callback_info_t*      cbinf     = (lime::callback_info_t*)user_data;
+  radio_notification_handler* notifier  = (radio_notification_handler*)cbinf->notifier;
+  radio_lime_tx_stream_fsm*   state_fsm = (radio_lime_tx_stream_fsm*)cbinf->state_fsm;
+  unsigned                    stream_id = cbinf->stream_id;
 
   // Handle event.
   radio_notification_handler::event_description event_description = {};
   event_description.stream_id                                     = stream_id;
   event_description.channel_id                                    = 0;
-  event_description.source                                        = (is_tx) ? (radio_notification_handler::event_source::TRANSMIT)
-                                                                            : (radio_notification_handler::event_source::RECEIVE);
-  event_description.type                                          = radio_notification_handler::event_type::UNDEFINED;
+  event_description.source = (is_tx) ? (radio_notification_handler::event_source::TRANSMIT)
+                                     : (radio_notification_handler::event_source::RECEIVE);
+  event_description.type   = radio_notification_handler::event_type::UNDEFINED;
 
-  if (stream_stats->underrun)
-  {
+  if (stream_stats->underrun) {
     event_description.type = radio_notification_handler::event_type::UNDERFLOW;
     state_fsm->async_event_late_underflow(stream_stats->timestamp);
   }
 
-  if (stream_stats->overrun || stream_stats->loss)
-  {
+  if (stream_stats->overrun || stream_stats->loss) {
     event_description.type = radio_notification_handler::event_type::OTHER;
   }
 
-  if (stream_stats->late)
-  {
+  if (stream_stats->late) {
     event_description.type = radio_notification_handler::event_type::LATE;
     state_fsm->async_event_late_underflow(stream_stats->timestamp);
   }
@@ -63,10 +59,10 @@ bool recv_async_msg(bool is_tx, const lime::SDRDevice::StreamStats *stream_stats
   return true;
 }
 
-bool radio_lime_tx_stream::transmit_block(unsigned&                            nof_txd_samples,
-                                         const baseband_gateway_buffer_reader& buffs,
-                                         unsigned                              buffer_offset,
-                                         lime::SDRDevice::StreamMeta&          md)
+bool radio_lime_tx_stream::transmit_block(unsigned&                             nof_txd_samples,
+                                          const baseband_gateway_buffer_reader& buffs,
+                                          unsigned                              buffer_offset,
+                                          lime::StreamMeta&                     md)
 {
   // Extract number of samples.
   unsigned num_samples = buffs[0].size() - buffer_offset;
@@ -80,19 +76,20 @@ bool radio_lime_tx_stream::transmit_block(unsigned&                            n
     buffs_flat_ptr[channel] = (void**)buffs[channel].subspan(buffer_offset, num_samples).data();
   }
 
-  const lime::complex32f_t** buffer = const_cast<const lime::complex32f_t **>((lime::complex32f_t**)buffs_flat_ptr.data());
+  const lime::complex32f_t** buffer =
+      const_cast<const lime::complex32f_t**>((lime::complex32f_t**)buffs_flat_ptr.data());
 
   // Safe transmission.
   return safe_execution([this, &buffer, num_samples, &md, &nof_txd_samples]() {
-  nof_txd_samples = stream->StreamTx(chipIndex, buffer, num_samples, &md);
-  // TODO: if nof_txd_samples < 0, increment underrun flag!
+    nof_txd_samples = stream->StreamTx(chipIndex, buffer, num_samples, &md);
+    // TODO: if nof_txd_samples < 0, increment underrun flag!
   });
 }
 
 radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
-                                          const stream_description&    description,
-                                          task_executor&               async_executor_,
-                                          radio_notification_handler&  notifier_) :
+                                           const stream_description&   description,
+                                           task_executor&              async_executor_,
+                                           radio_notification_handler& notifier_) :
   stream_id(description.id),
   async_executor(async_executor_),
   notifier(notifier_),
@@ -114,14 +111,14 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
   // }
 
   // Build stream arguments.
-  lime::SDRDevice::StreamConfig::DataFormat wire_format;
+  lime::DataFormat wire_format;
   switch (description.otw_format) {
     case radio_configuration::over_the_wire_format::DEFAULT:
     case radio_configuration::over_the_wire_format::SC16:
-      wire_format = lime::SDRDevice::StreamConfig::DataFormat::I16;
+      wire_format = lime::DataFormat::I16;
       break;
     case radio_configuration::over_the_wire_format::SC12:
-      wire_format = lime::SDRDevice::StreamConfig::DataFormat::I12;
+      wire_format = lime::DataFormat::I12;
       break;
     case radio_configuration::over_the_wire_format::SC8:
     default:
@@ -129,88 +126,67 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
       return;
   }
 
-  device->GetStreamConfig().linkFormat    = wire_format;
-  device->GetStreamConfig().format        = lime::SDRDevice::StreamConfig::DataFormat::F32;
+  device->GetStreamConfig().linkFormat = wire_format;
+  device->GetStreamConfig().format     = lime::DataFormat::F32;
   // device->GetStreamConfig().txCount       = nof_channels;
-  device->GetStreamConfig().alignPhase    = (nof_channels>1) ? true : false;
+  device->GetStreamConfig().alignPhase     = (nof_channels > 1) ? true : false;
   device->GetStreamConfig().hintSampleRate = srate_hz;
-   // NOT USING THIS FOR NOW
+  // NOT USING THIS FOR NOW
   // device->GetStreamConfig().userData = malloc(sizeof(lime::callback_info_t));
-  for (unsigned int i=0; i<nof_channels; i++)
-  {
+  for (unsigned int i = 0; i < nof_channels; i++) {
     device->GetStreamConfig().channels.at(lime::TRXDir::Tx).push_back(i);
 
-    device->GetDeviceConfig().channel[i].tx.enabled = true;
+    device->GetDeviceConfig().channel[i].tx.enabled    = true;
     device->GetDeviceConfig().channel[i].tx.sampleRate = srate_hz;
     device->GetDeviceConfig().channel[i].tx.oversample = 2;
   }
 
   // Parse out optional arguments.
-  if (!description.args.empty())
-  {
+  if (!description.args.empty()) {
     std::vector<std::pair<std::string, std::string>> args;
-    if (!device->split_args(description.args, args))
-    {
+    if (!device->split_args(description.args, args)) {
       logger.error("Failed to create transmit stream {}. Could not parse args!", stream_id);
       return;
     }
 
-    for (auto& arg : args)
-    {
-      if (arg.first == "nrbandwidth")
-      {
+    for (auto& arg : args) {
+      if (arg.first == "nrbandwidth") {
         unsigned long nr_bw = std::stoul(arg.second, nullptr, 10);
-        for (unsigned int i=0; i<nof_channels; i++)
-          device->GetDeviceConfig().channel[i].tx.lpf = (nr_bw*1e6) / 2;
-      }
-      else if (arg.first == "txlpf")
-      {
+        for (unsigned int i = 0; i < nof_channels; i++)
+          device->GetDeviceConfig().channel[i].tx.lpf = (nr_bw * 1e6) / 2;
+      } else if (arg.first == "txlpf") {
         unsigned long lpf = std::stoul(arg.second, nullptr, 10);
-        for (unsigned int i=0; i<nof_channels; i++)
+        for (unsigned int i = 0; i < nof_channels; i++)
           device->GetDeviceConfig().channel[i].tx.lpf = lpf;
-      }
-      else if (arg.first == "txoversample")
-      {
+      } else if (arg.first == "txoversample") {
         unsigned long oversample = std::stoul(arg.second, nullptr, 10);
-        for (unsigned int i=0; i<nof_channels; i++)
+        for (unsigned int i = 0; i < nof_channels; i++)
           device->GetDeviceConfig().channel[i].tx.oversample = oversample;
-      }
-      else if (arg.first == "txgfir")
-      {
+      } else if (arg.first == "txgfir") {
         unsigned long gfir = std::stoul(arg.second, nullptr, 10);
-        for (unsigned int i=0; i<nof_channels; i++)
-        {
-          device->GetDeviceConfig().channel[i].tx.gfir.enabled = true;
+        for (unsigned int i = 0; i < nof_channels; i++) {
+          device->GetDeviceConfig().channel[i].tx.gfir.enabled   = true;
           device->GetDeviceConfig().channel[i].tx.gfir.bandwidth = gfir;
         }
-      }
-      else if (arg.first == "txcalibrate")
-      {
-        for (unsigned int i=0; i<nof_channels; i++)
+      } else if (arg.first == "txcalibrate") {
+        for (unsigned int i = 0; i < nof_channels; i++)
           device->GetDeviceConfig().channel[i].tx.calibrate = true;
-      }
-      else if (arg.first == "txtestSignal")
-      {
-        for (unsigned int i=0; i<nof_channels; i++)
+      } else if (arg.first == "txtestSignal") {
+        for (unsigned int i = 0; i < nof_channels; i++)
           device->GetDeviceConfig().channel[i].tx.testSignal = true;
       }
       // 0=NONE, 1=BAND1, 2=BAND2
-      else if (arg.first == "txpathint")
-      {
+      else if (arg.first == "txpathint") {
         unsigned long path = std::stoul(arg.second, nullptr, 10);
-        for (unsigned int i=0; i<nof_channels; i++)
+        for (unsigned int i = 0; i < nof_channels; i++)
           device->GetDeviceConfig().channel[i].tx.path = path;
-      }
-      else if (arg.first == "txpath")
-      {
+      } else if (arg.first == "txpath") {
         bool match = false;
         auto paths = device->dev()->GetDescriptor().rfSOC[0].pathNames.at(lime::TRXDir::Tx);
-        for(uint j=0; j<paths.size(); ++j)
-        {
-          if (strcasecmp(paths[j].c_str(), arg.second.c_str()) == 0)
-          {
+        for (uint j = 0; j < paths.size(); ++j) {
+          if (strcasecmp(paths[j].c_str(), arg.second.c_str()) == 0) {
             logger.debug("TX path: {} ({})", arg.second.c_str(), j);
-            for (unsigned int i=0; i<nof_channels; i++)
+            for (unsigned int i = 0; i < nof_channels; i++)
               device->GetDeviceConfig().channel[i].tx.path = j;
             match = true;
             break;
@@ -219,31 +195,24 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
 
         if (!match)
           logger.error("TX path {} not valid!", arg.second.c_str());
-      }
-      else if (arg.first == "txMaxPacketsInBatch")
-      {
-        unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig.txMaxPacketsInBatch = number;
-      }
-      else if (arg.first == "txSamplesInPacket")
-      {
-        unsigned long number = std::stoul(arg.second, nullptr, 10);
-        device->GetStreamConfig().extraConfig.txSamplesInPacket = number;
-      }
-      else if (arg.first == "lmsconfig")
-      {
+      } else if (arg.first == "txMaxPacketsInBatch") {
+        unsigned long number                                    = std::stoul(arg.second, nullptr, 10);
+        device->GetStreamConfig().extraConfig.tx.packetsInBatch = number;
+      } else if (arg.first == "txSamplesInPacket") {
+        unsigned long number                                     = std::stoul(arg.second, nullptr, 10);
+        device->GetStreamConfig().extraConfig.tx.samplesInPacket = number;
+      } else if (arg.first == "lmsconfig") {
         device->GetLMSConfPath() = arg.second;
-      }
-      else
+      } else
         continue;
 
       logger.debug("Set {} to {}", arg.first, arg.second);
     }
-  } 
+  }
 
   // Set max packet size.
   // TODO: This might need to be 256?
-  //max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
+  // max_packet_size = (wire_format == lime::SDRDevice::StreamConfig::DataFormat::I12 ? 1360 : 1020)/nof_channels;
   max_packet_size = 256;
 
   // // CREATE THE STREAMS
@@ -262,12 +231,13 @@ radio_lime_tx_stream::radio_lime_tx_stream(std::shared_ptr<LimeHandle> device_,
   device->GetStreamConfig().statusCallback = recv_async_msg;
 }
 
-void radio_lime_tx_stream::transmit(const baseband_gateway_buffer_reader& data, const baseband_gateway_transmitter_metadata& tx_md)
+void radio_lime_tx_stream::transmit(const baseband_gateway_buffer_reader&        data,
+                                    const baseband_gateway_transmitter_metadata& tx_md)
 {
   // Protect stream transmitter.
   std::unique_lock<std::mutex> lock(stream_transmit_mutex);
 
-  lime::SDRDevice::StreamMeta meta;
+  lime::StreamMeta meta;
 
   unsigned nsamples          = data.get_nof_samples();
   unsigned txd_samples_total = 0;
@@ -279,9 +249,10 @@ void radio_lime_tx_stream::transmit(const baseband_gateway_buffer_reader& data, 
   // }
   // TODO: add burst flags back in!
   // meta.flush = (md->flags & TRX_WRITE_MD_FLAG_END_OF_BURST);
-  meta.flush=false;
-  meta.timestamp=tx_md.ts;
-  meta.useTimestamp=true;
+
+  meta.flushPartialPacket = false;
+  meta.timestamp          = tx_md.ts;
+  meta.waitForTimestamp   = true;
 
   if (state_fsm.is_stopping()) {
     return;

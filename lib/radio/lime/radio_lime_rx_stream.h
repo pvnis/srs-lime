@@ -74,7 +74,7 @@ private:
   bool receive_block(unsigned&                       nof_rxd_samples,
                      baseband_gateway_buffer_writer& buffs,
                      unsigned                        buffer_offset,
-                     lime::SDRDevice::StreamMeta&    md);
+                     lime::StreamMeta&    md);
 
 public:
   /// Describes the necessary parameters to create a Lime transmit stream.

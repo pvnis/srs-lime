@@ -31,9 +31,10 @@
 #else // __clang__
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif // __clang__
-#include <limesuite/SDRDevice.h>
-#include <limesuite/LMS7002M.h>
-#include <limesuite/commonTypes.h>
+#include <limesuiteng/limesuiteng.hpp>
+// #include <limesuite/SDRDevice.h>
+// #include <limesuite/LMS7002M.h>
+// #include <limesuite/commonTypes.h>
 #pragma GCC diagnostic pop
 
 namespace srsran {
@@ -107,15 +108,17 @@ public:
   /// \param[out] metadata Provides the destination of the required metadata.
   /// \param[in] time_spec Indicates the transmission time.
   /// \return True if the block shall be transmitted. False if the block shall be ignored.
-  bool transmit_block(lime::SDRDevice::StreamMeta& metadata, uint64_t time_spec)
+  bool transmit_block(lime::StreamMeta& metadata, uint64_t time_spec)
   {
     std::unique_lock<std::mutex> lock(mutex);
     switch (state) {
       case states::START_BURST:
         // Set start of burst flag and time spec.
         metadata.timestamp      = time_spec;
-        metadata.useTimestamp   = true;
-        // Transition to in-burst.
+        metadata.waitForTimestamp   = true;
+        metadata.flushPartialPacket = true;
+        
+        // TODO: Transition to in-burst ??
         // state = states::IN_BURST;
         break;
       case states::IN_BURST:
@@ -123,7 +126,7 @@ public:
         break;
       case states::END_OF_BURST:
         // Flag end-of-burst.
-        metadata.flush = true;
+        metadata.flushPartialPacket = true;
         state                 = states::WAIT_END_OF_BURST;
         if (wait_eob_timeout == uint64_t()) {
           wait_eob_timeout = metadata.timestamp;
@@ -134,7 +137,7 @@ public:
         // Consider starting the burst if the wait for end-of-burst expired.
         if (wait_eob_timeout < time_spec) {
           // Set start of burst flag and time spec.
-          metadata.useTimestamp = true;
+          metadata.waitForTimestamp = true;
           //Transition to in-burst.
           state = states::IN_BURST;
           break;
