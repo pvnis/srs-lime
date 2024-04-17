@@ -339,7 +339,8 @@ public:
     return safe_execution([this, ch, gain]() {
     
       // Use the internal PA (currently no external amplifier is used!)
-      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Tx).at(lime::eGainTypes::PA);
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Tx).at(lime::eGainTypes::UNKNOWN);
+      logger.debug("Range for TX gain is [{}, {}] w/ step {}", range.min, range.max, range.step);
 
       if (!radio_lime_device_validate_gain_range(range, gain)) {
         on_error("Tx gain (i.e., {} dB) is out-of-range. Range is [{}, {}] dB in steps of {} dB.",
@@ -360,7 +361,7 @@ public:
 
       // Set all channels at once
       for(int i = 0; i < device->GetChannelCount(); i++){
-        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::PA, gain);
+        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::UNKNOWN, gain);
         if(stat != lime::OpStatus::Success){
           on_error("Could not configure channel {} to frequency {}", i, gain);
         }
@@ -375,7 +376,7 @@ public:
 
     return safe_execution([this, ch, gain]() {
       // Use the internal PA (currently no external amplifier is used!)
-      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Rx).at(lime::eGainTypes::PA);
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Rx).at(lime::eGainTypes::UNKNOWN);
 
       if (!radio_lime_device_validate_gain_range(range, gain)) {
         on_error("Rx gain (i.e., {} dB) is out-of-range. Range is [{}, {}] dB in steps of {} dB.",
@@ -392,7 +393,7 @@ public:
       // }
 
       for(int i = 0; i < device->GetChannelCount(); i++){
-        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::PA, gain);
+        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::UNKNOWN, gain);
         if(stat != lime::OpStatus::Success){
           on_error("Could not configure channel {} to gain {}", i, gain);
         }

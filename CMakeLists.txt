@@ -277,10 +277,10 @@ endif (ENABLE_DPDK)
 
 # Limesuite
 if (ENABLE_LIME)
-   find_package(LimeSuite2)
+   find_package(LimeSuiteNG)
    if (LIME_FOUND)
-       include_directories(${LimeSuite2_INCLUDE_DIRS})
-       link_directories(${LimeSuite2_LIBRARY_DIRS})
+       include_directories(${LimeSuiteNG_INCLUDE_DIRS})
+       link_directories(${LimeSuiteNG_LIBRARY_DIRS})
    endif (LIME_FOUND)
 else (ENABLE_LIME)
    unset (LIME_FOUND CACHE)

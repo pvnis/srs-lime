@@ -42,7 +42,7 @@ ru_sdr:
   #srate: 46.08
   srate: 30.72
   otw_format: sc16
-  tx_gain: 70
+  tx_gain: 64
   rx_gain: 43
 
 cell_cfg:
@@ -93,10 +93,10 @@ cell_cfg:
 
 log:
   # filename: gnb_xtrx2.log
-  filename: ./gnb.log
-  # filename: stdout
+  #filename: ./gnb.log
+  filename: stdout
   all_level: warning
-  #radio_level: debug
+  radio_level: debug
   # phy_level: debug
   # mac_level: debug
 #   rlc_level: warning
