@@ -34,7 +34,7 @@ amf:
 ru_sdr:
   device_driver: lime
   # LNAH, LNAL, LNAW
-  device_args: rxcalibrate=1,txcalibrate=1,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=256,txSamplesInPacket=1024,rxoversample=2,txoversample=2
+  device_args: rxcalibrate=1,txcalibrate=1,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Download/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
   # clock:
   # sync:
   # srate: 92.16
@@ -42,7 +42,7 @@ ru_sdr:
   #srate: 46.08
   srate: 30.72
   otw_format: sc16
-  tx_gain: 64
+  tx_gain: 44
   rx_gain: 43
 
 cell_cfg:

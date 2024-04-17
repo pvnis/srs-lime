@@ -133,6 +133,8 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
     device->GetDeviceConfig().channel[i].rx.oversample = 2;
   }
 
+  logger.debug("++++++++ PARSING LIME RX ARGS +++++++++++");
+
   // Parse out optional arguments.
   if (!description.args.empty())
   {

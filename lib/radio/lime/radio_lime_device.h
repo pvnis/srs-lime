@@ -260,7 +260,7 @@ public:
     return safe_execution([this, rate]() {
 
       // Get Range for sampling rate
-      logger.debug("[TX] Device rfSOC of LIME is {}", device->dev()->GetDescriptor().rfSOC.size());
+      logger.debug("Device rfSOC of LIME has channels: {}", device->dev()->GetDescriptor().rfSOC[0].channelCount);
       lime::Range range = device->dev()->GetDescriptor().rfSOC[0].samplingRateRange;
 
       if (!radio_lime_device_validate_freq_range(range, rate)) {
