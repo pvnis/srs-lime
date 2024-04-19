@@ -62,9 +62,12 @@ namespace srsran {
 /// @brief Calback for logging in lime
 /// @param lvl selected log level
 /// @param msg the message buffer (ptr to it)
-static void LogCallback(lime::LogLevel lvl, const char* msg)
+static void LogCallback(lime::LogLevel lvl, const std::string str_msg)
 {
   static srslog::basic_logger& logger = srslog::fetch_basic_logger("RF");
+
+  char *msg = new char[str_msg.length() + 1];
+  strcpy(msg, str_msg.c_str());
 
   switch (lvl)
   {

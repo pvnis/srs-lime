@@ -7,7 +7,7 @@ slicing:
     sd: 1
 
 amf:
-  addr: 10.43.215.55
+  addr: 10.43.205.70
   bind_addr: 192.168.0.104
 
 #ru_sdr:
@@ -34,7 +34,8 @@ amf:
 ru_sdr:
   device_driver: lime
   # LNAH, LNAL, LNAW
-  device_args: rxcalibrate=1,txcalibrate=1,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Download/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
+  # device_args: rxcalibrate=0,txcalibrate=0,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Download/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
+  device_args: usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Download/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
   # clock:
   # sync:
   # srate: 92.16
