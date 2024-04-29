@@ -7,7 +7,7 @@ slicing:
     sd: 1
 
 amf:
-  addr: 10.43.205.70
+  addr: 10.43.28.216
   bind_addr: 192.168.0.104
 
 #ru_sdr:
@@ -35,7 +35,7 @@ ru_sdr:
   device_driver: lime
   # LNAH, LNAL, LNAW
   # device_args: rxcalibrate=0,txcalibrate=0,usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Download/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
-  device_args: usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Download/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
+  device_args: usepoll=1,rxpath=LNAL,txpath=BAND1,rxPacketsInBatch=2,txMaxPacketsInBatch=1,rxSamplesInPacket=1024,txSamplesInPacket=1024,rxoversample=2,txoversample=2,lmsconfig=/home/sens/Downloads/srs-5g/configs/xtrx_cfgs/LimeSDR.ini
   # clock:
   # sync:
   # srate: 92.16
@@ -54,8 +54,8 @@ cell_cfg:
   #channel_bandwidth_MHz: 60
   # channel_bandwidth_MHz: 80
   common_scs: 30                                                  # Subcarrier spacing in kHz used for data.
-  plmn: "001001"
-  #plmn: "00104"                                                   # PLMN broadcasted by the gNB.
+  # plmn: "001001"
+  plmn: "00101"
   tac: 1                                                          # Tracking area code (needs to match the core configuration).
   pci: 1                                                          # Physical cell ID.
   tdd_ul_dl_cfg:

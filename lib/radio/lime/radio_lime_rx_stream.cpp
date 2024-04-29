@@ -77,10 +77,8 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
 
   logger.debug("Creating receive stream {}.", id);
 
-  srslog::fetch_basic_logger("LOWER PHY").debug(
-    "eduard | radio_lime_rx_stream.cpp | radio_lime_rx_stream (constructor): srate_Hz={}", srate_Hz);
+  logger.debug("eduard | radio_lime_rx_stream.cpp | radio_lime_rx_stream (constructor): srate_Hz={}", srate_Hz);
   
-
   // Get the number of channels and check if valid
   // unsigned int availablePortsRX = device->GetStreamConfig().channels[lime::TRXDir::Rx].size();
   // unsigned int availablePortsTX = device->GetStreamConfig().channels[lime::TRXDir::Tx].size();
@@ -94,6 +92,8 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
     logger.error("Device supports only {} ports, required {}", availablePortsRX, nof_channels);
     return;
   }
+
+  logger.debug("eduard | radio_lime_rx_stream.cpp | radio_lime_rx_stream (constructor): availRxPorts={}, availTxPorts={}, nof_channels={}", availablePortsRX, availablePortsTX, nof_channels);
 
   // Build stream arguments.
   lime::DataFormat wire_format;
@@ -129,6 +129,9 @@ radio_lime_rx_stream::radio_lime_rx_stream(std::shared_ptr<LimeHandle> device_,
     device->GetStreamConfig().channels.at(lime::TRXDir::Rx).push_back(i);
 
     device->GetDeviceConfig().channel[i].rx.enabled = true;
+
+    device->GetDeviceConfig().channel[i].rx.lpf = 0;
+    device->GetDeviceConfig().channel[i].rx.calibrate = false;
     device->GetDeviceConfig().channel[i].rx.sampleRate = srate_Hz;
     device->GetDeviceConfig().channel[i].rx.oversample = 2;
   }

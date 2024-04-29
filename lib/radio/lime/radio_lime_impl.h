@@ -76,15 +76,17 @@ private:
 
   /// \brief Set transmission gain from the class itself.
   /// \param[in] port_idx Indicates the port index.
+  /// \param[in] gainType Gain Type [PAD, IAMP - [0;52], [-12;12] respectively
   /// \param[in] gain_dB Indicates the gain value.
   /// \return True if the port index and gain value are valid, and no exception is caught. Otherwise false.
-  bool set_tx_gain_unprotected(unsigned port_idx, double gain_dB);
+  bool set_tx_gain_unprotected(unsigned port_idx, lime::eGainTypes gainType, double gain_dB);
 
   /// \brief Set reception gain from the class itself.
   /// \param[in] port_idx Indicates the port index.
+  /// \param[in] gainType Gain Type [LNA, PGA, TIA - [0;30], [-12;19], [0;12] respectively
   /// \param[in] gain_dB Indicates the gain value.
   /// \return True if the port index and gain value are valid, and no exception is caught. Otherwise false.
-  bool set_rx_gain_unprotected(unsigned port_idx, double gain_dB);
+  bool set_rx_gain_unprotected(unsigned port_idx, lime::eGainTypes gainType, double gain_dB);
 
   /// \brief Set transmission frequency.
   /// \param[in] port_idx Indicates the port index.
@@ -136,10 +138,19 @@ public:
   void stop() override;
 
   // See interface for documentation.
-  bool set_tx_gain(unsigned port_idx, double gain_dB) override { return set_tx_gain_unprotected(port_idx, gain_dB); }
+  // Set the power amplifier gain in dB [0; 52]
+  bool set_tx_gain(unsigned ch, double gain) override {return set_tx_gain(ch, lime::eGainTypes::PAD, gain);};
+  
+  // Set the power amplifier gain in dB [0; 52]
+  // Set the IAMP gain [-12; 12] 
+  bool set_tx_gain(unsigned port_idx, lime::eGainTypes gainType, double gain_dB) { return set_tx_gain_unprotected(port_idx, gainType, gain_dB); }
+
 
   // See interface for documentation.
-  bool set_rx_gain(unsigned port_idx, double gain_dB) override { return set_rx_gain_unprotected(port_idx, gain_dB); }
+  // Set the LNA gain in dB [0; 30]
+  bool set_rx_gain(unsigned port_idx, double gain_dB) override { return set_rx_gain(port_idx, lime::eGainTypes::LNA, gain_dB); }
+  // Set LNA [0;30], PGA [-12;19], TIA [0;12]
+  bool set_rx_gain(unsigned port_idx, lime::eGainTypes gainType, double gain_dB) { return set_rx_gain_unprotected(port_idx, gainType, gain_dB); }
 };
 
 class radio_factory_lime_impl : public radio_factory

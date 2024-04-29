@@ -109,7 +109,7 @@ bool radio_session_lime_impl::wait_sensor_locked(const std::string& sensor_name,
   return is_locked;
 }
 
-bool radio_session_lime_impl::set_tx_gain_unprotected(unsigned port_idx, double gain_dB)
+bool radio_session_lime_impl::set_tx_gain_unprotected(unsigned port_idx, lime::eGainTypes gainType, double gain_dB)
 {
   if (port_idx >= tx_port_map.size()) {
     fmt::print(
@@ -118,14 +118,14 @@ bool radio_session_lime_impl::set_tx_gain_unprotected(unsigned port_idx, double 
   }
 
   // Setup gain.
-  if (!device.set_tx_gain(port_idx, gain_dB)) {
+  if (!device.set_tx_gain(port_idx, gainType, gain_dB)) {
     fmt::print("Error: setting gain for transmitter {}. {}\n", port_idx, device.get_error_message());
   }
 
   return true;
 }
 
-bool radio_session_lime_impl::set_rx_gain_unprotected(unsigned port_idx, double gain_dB)
+bool radio_session_lime_impl::set_rx_gain_unprotected(unsigned port_idx, lime::eGainTypes gainType, double gain_dB)
 {
   if (port_idx >= rx_port_map.size()) {
     fmt::print("Error: receive port index ({}) exceeds the number of ports ({}).\n", port_idx, (int)rx_port_map.size());
@@ -306,12 +306,19 @@ radio_session_lime_impl::radio_session_lime_impl(const radio_configuration::radi
     device.set_time_unknown_pps(0);
   }
 
+
+  fmt::print("Setting up the Center Frequencies! [RX / TX]");
+
+
   // Lists of stream descriptions.
   std::vector<radio_lime_tx_stream::stream_description> tx_stream_description_list;
   std::vector<radio_lime_rx_stream::stream_description> rx_stream_description_list;
 
   // For each transmit stream, create stream and configure RF ports.
   for (unsigned stream_idx = 0; stream_idx != radio_config.tx_streams.size(); ++stream_idx) {
+    
+    fmt::print("Configuring steram {}", stream_idx);
+
     // Select stream.
     const radio_configuration::stream& stream = radio_config.tx_streams[stream_idx];
 
@@ -342,8 +349,9 @@ radio_session_lime_impl::radio_session_lime_impl(const radio_configuration::radi
       // Extract port configuration.
       const radio_configuration::channel& channel = stream.channels[channel_idx];
 
-      // Setup gain.
-      set_tx_gain_unprotected(port_idx, channel.gain_dB);
+      // Setup gain. (PAD is the one in the config, the IAMP is max by default)
+      set_tx_gain_unprotected(port_idx, lime::eGainTypes::IAMP, 12);
+      set_tx_gain_unprotected(port_idx, lime::eGainTypes::PAD, channel.gain_dB);
 
       // Setup frequency.
       if (!set_tx_freq(port_idx, channel.freq)) {
@@ -393,7 +401,12 @@ radio_session_lime_impl::radio_session_lime_impl(const radio_configuration::radi
       const radio_configuration::channel& channel = stream.channels[channel_idx];
 
       // Setup gain.
-      if (!set_rx_gain_unprotected(port_idx, channel.gain_dB)) {
+      bool res = set_rx_gain_unprotected(port_idx, lime::eGainTypes::LNA, channel.gain_dB);
+      res = res || set_rx_gain_unprotected(port_idx, lime::eGainTypes::PGA, 19);
+      res = res || set_rx_gain_unprotected(port_idx, lime::eGainTypes::TIA, 12);
+
+      // Check the config was successful.
+      if (!res) {
         return;
       }
 

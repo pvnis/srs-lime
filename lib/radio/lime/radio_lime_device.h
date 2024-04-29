@@ -335,14 +335,19 @@ public:
     logger.debug("Radio configured in {}ms.", std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count());
   }
 
-  bool set_tx_gain(unsigned ch, double gain)
+  bool set_tx_gain(unsigned ch, double gain){
+    // By default, set the PAD gain (i.e., the internal PA gain)
+    return set_tx_gain(ch, lime::eGainTypes::PAD, gain);
+  }
+
+  bool set_tx_gain(unsigned ch, lime::eGainTypes gainType, double gain)
   {
     logger.debug("Setting channel {} Tx gain to {:.2f} dB.", ch, gain);
 
-    return safe_execution([this, ch, gain]() {
+    return safe_execution([this, ch, gainType, gain]() {
     
       // Use the internal PA (currently no external amplifier is used!)
-      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Tx).at(lime::eGainTypes::UNKNOWN);
+      lime::Range range = device->dev()->GetDescriptor().rfSOC[0].gainRange.at(lime::TRXDir::Tx).at(gainType);
       logger.debug("Range for TX gain is [{}, {}] w/ step {}", range.min, range.max, range.step);
 
       if (!radio_lime_device_validate_gain_range(range, gain)) {
@@ -364,7 +369,7 @@ public:
 
       // Set all channels at once
       for(int i = 0; i < device->GetChannelCount(); i++){
-        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, lime::eGainTypes::UNKNOWN, gain);
+        lime::OpStatus stat = device->dev()->SetGain(0, lime::TRXDir::Tx, i, gainType, gain);
         if(stat != lime::OpStatus::Success){
           on_error("Could not configure channel {} to frequency {}", i, gain);
         }
